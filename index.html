@@ -6,112 +6,129 @@
 <meta name="theme-color" content="#111318">
 <title>Jadey NFC Maker</title>
 <style>
-:root{color-scheme:dark;--bg:#0b0d11;--card:#151821;--line:#2b3140;--text:#f7f8fb;--muted:#9da6b6;--accent:#ff7043;--ok:#72e6a6;--bad:#ff7b86}
+:root{
+  color-scheme:dark;
+  --bg:#0b0d11;--card:#151922;--panel:#10131a;--line:#2b3240;
+  --text:#f6f7fb;--muted:#9da7b7;--accent:#ff7043;--ok:#70e2a4;--bad:#ff7b86
+}
 *{box-sizing:border-box}
-body{margin:0;min-height:100svh;background:linear-gradient(180deg,#0b0d11,#10131a);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-.wrap{max-width:720px;margin:auto;padding:22px 16px 48px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:20px;margin:14px 0;box-shadow:0 18px 44px rgba(0,0,0,.25)}
-h1{font-size:29px;margin:4px 0 6px} h2{font-size:19px;margin:0 0 12px}
+body{margin:0;min-height:100svh;background:linear-gradient(180deg,#090b0f,#11151d);
+  color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+.wrap{max-width:760px;margin:auto;padding:20px 16px 48px}
+h1{font-size:30px;margin:5px 0 4px}h2{font-size:19px;margin:0 0 12px}
 p{color:var(--muted);line-height:1.5}
-label{display:block;color:var(--muted);font-size:13px;margin:13px 0 7px}
-input,textarea{width:100%;padding:13px 14px;border-radius:13px;border:1px solid var(--line);background:#0f1218;color:var(--text);font-size:15px;outline:none}
-input:focus,textarea:focus{border-color:#59647c}
-button,a.btn{width:100%;display:block;border:0;border-radius:15px;padding:15px 16px;margin-top:11px;font-size:16px;font-weight:850;text-decoration:none;text-align:center;cursor:pointer}
-.primary{background:var(--accent);color:#111}.secondary{background:#282e3a;color:#fff}
-.status{margin-top:13px;padding:13px 14px;border:1px solid var(--line);border-radius:13px;background:#0f1218;color:var(--muted);white-space:pre-wrap;word-break:break-word;line-height:1.45}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:19px;margin:14px 0;
+  box-shadow:0 18px 48px rgba(0,0,0,.28)}
+label{display:block;font-size:13px;color:var(--muted);margin:13px 0 7px}
+input,textarea{width:100%;border:1px solid var(--line);border-radius:13px;background:var(--panel);
+  color:var(--text);padding:13px 14px;font-size:15px;outline:none}
+input:focus,textarea:focus{border-color:#59657c}
+button,a.btn{display:block;width:100%;border:0;border-radius:15px;padding:15px 16px;margin-top:11px;
+  font-size:16px;font-weight:850;text-align:center;text-decoration:none;cursor:pointer}
+.primary{background:var(--accent);color:#151515}.secondary{background:#282e3b;color:#fff}
+.status{margin-top:13px;padding:13px 14px;background:var(--panel);border:1px solid var(--line);
+  border-radius:13px;color:var(--muted);white-space:pre-wrap;word-break:break-word;line-height:1.45}
 .ok{color:var(--ok)}.bad{color:var(--bad)}
-.small{font-size:12px;color:#7d8594;line-height:1.5}
-code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;word-break:break-all}
+.small{font-size:12px;color:#7e8797;line-height:1.5}
 .hidden{display:none!important}
-.spinner{width:48px;height:48px;border:5px solid #2e3441;border-top-color:#fff;border-radius:50%;margin:16px auto;animation:spin .8s linear infinite}
+.tag{display:inline-block;padding:5px 9px;border-radius:999px;border:1px solid var(--line);
+  color:var(--muted);font-size:12px;margin:3px}
+.spinner{width:46px;height:46px;margin:14px auto;border:5px solid #303644;border-top-color:#fff;
+  border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;word-break:break-all}
 </style>
 </head>
 <body>
 
-<!-- AUTOMATION / RECEIVER MODE -->
-<div id="opener" class="wrap hidden">
+<!-- This is the receiver page opened by the NFC tag -->
+<section id="receiver" class="wrap hidden">
   <div class="card" style="text-align:center">
     <div class="spinner"></div>
     <h1>Opening Instagram…</h1>
-    <p id="openText">Trying to open the profile in the Instagram app.</p>
-    <button id="manualOpen" class="primary">Open in Instagram</button>
-    <a id="browserFallback" class="btn secondary" href="#">Open profile in browser</a>
-    <p class="small">Android or the browser may require one tap before allowing a website to open another app.</p>
+    <p id="receiverInfo"></p>
+    <button id="openInstagram" class="primary">Open in Instagram</button>
+    <a id="openBrowser" class="btn secondary" href="#">Open in browser</a>
+    <p class="small">
+      If Android or the browser blocks automatic app launching, tap “Open in Instagram”.
+    </p>
   </div>
-</div>
+</section>
 
-<!-- MAKER MODE -->
-<div id="maker" class="wrap hidden">
+<!-- NFC Maker -->
+<main id="maker" class="wrap hidden">
   <h1>Jadey NFC Maker</h1>
-  <p>Writes a “smart automation” URL to the NFC tag. When scanned, this same page tries to open Instagram directly to your target profile.</p>
+  <p>Create a no-companion-app “task-like” NFC tag for your Instagram profile.</p>
 
   <div class="card">
-    <h2>Instagram automation</h2>
+    <h2>Instagram task</h2>
 
-    <label for="target">Instagram target URL</label>
+    <label for="target">Instagram target</label>
     <textarea id="target" rows="3">https://www.instagram.com/jadeymn_?stkn=MWxnYjBnbTVub3l4aw==</textarea>
 
-    <label for="automationUrl">URL that will actually be stored on the NFC tag</label>
-    <textarea id="automationUrl" rows="4" readonly></textarea>
+    <label for="taskUrl">NFC automation URL</label>
+    <textarea id="taskUrl" rows="5" readonly></textarea>
 
-    <button id="buildBtn" class="secondary">Refresh automation URL</button>
-    <button id="testBtn" class="secondary">Test automation now</button>
-    <button id="writeBtn" class="primary">Write Automation to NFC Tag</button>
+    <button id="refresh" class="secondary">Build Task URL</button>
+    <button id="test" class="secondary">Test Instagram Launch</button>
+    <button id="write" class="primary">Write Task to NFC Tag</button>
 
     <div id="status" class="status">Ready.</div>
   </div>
 
   <div class="card">
-    <h2>How this works</h2>
+    <h2>What gets written</h2>
     <p class="small">
-      The NFC tag stores an HTTPS link back to this hosted file. The link includes your Instagram target.
-      When another phone scans the tag, the page opens in the browser and immediately attempts an Android
-      <code>intent://</code> targeted at <code>com.instagram.android</code>. If that fails, it falls back to the exact Instagram HTTPS URL.
+      The NFC tag contains one normal HTTPS URL. When scanned, that URL opens this page in task mode.
+      The page then tries an Android <code>intent://</code> targeted at
+      <code>com.instagram.android</code> while preserving your Instagram URL.
     </p>
+    <div>
+      <span class="tag">No Tasker</span>
+      <span class="tag">No NFC Tasks</span>
+      <span class="tag">HTTPS NFC record</span>
+      <span class="tag">Instagram fallback</span>
+    </div>
     <p class="small">
-      This does not require NFC Tasks on the scanning phone. However, Android/iOS/browser security can still require a user tap
-      or choose the browser instead of Instagram. A web page cannot override those operating-system rules.
+      This is the closest a webpage can get to NFC Tasks without a companion app. Android/iOS can still
+      require a confirmation or user tap; a webpage cannot bypass OS security rules.
     </p>
   </div>
-</div>
+</main>
 
 <script>
 (() => {
   const $ = id => document.getElementById(id);
-  const qs = new URLSearchParams(location.search);
-  const mode = qs.get("mode");
+  const params = new URLSearchParams(location.search);
+  const action = params.get("action");
 
-  function validInstagramUrl(raw) {
-    try {
+  function validInstagram(raw){
+    try{
       const u = new URL(raw);
-      return /^https?:$/.test(u.protocol) &&
-             (u.hostname === "instagram.com" || u.hostname === "www.instagram.com");
-    } catch { return false; }
+      return u.protocol === "https:" &&
+        ["instagram.com","www.instagram.com","m.instagram.com"].includes(u.hostname);
+    }catch{return false}
   }
 
-  function androidIntentFor(target) {
+  function getUsername(raw){
+    try{
+      const u = new URL(raw);
+      const parts = u.pathname.split("/").filter(Boolean);
+      if (!parts.length) return "Instagram";
+      if (parts[0] === "_u" && parts[1]) return "@" + parts[1];
+      return "@" + parts[0];
+    }catch{return "Instagram"}
+  }
+
+  function androidIntent(target){
     const u = new URL(target);
-    const scheme = u.protocol.replace(":", "") || "https";
-    const withoutScheme = `${u.host}${u.pathname}${u.search}`;
-    return `intent://${withoutScheme}#Intent;scheme=${scheme};package=com.instagram.android;` +
-           `S.browser_fallback_url=${encodeURIComponent(target)};end`;
+    const path = `${u.host}${u.pathname}${u.search}${u.hash}`;
+    return `intent://${path}#Intent;scheme=https;package=com.instagram.android;` +
+      `S.browser_fallback_url=${encodeURIComponent(target)};end`;
   }
 
-  function usernameFromTarget(target) {
-    try {
-      const u = new URL(target);
-      const first = u.pathname.split("/").filter(Boolean)[0] || "jadeymn_";
-      if (["_u","p","reel","reels","stories"].includes(first)) {
-        const second = u.pathname.split("/").filter(Boolean)[1];
-        return second || "jadeymn_";
-      }
-      return first;
-    } catch { return "jadeymn_"; }
-  }
-
-  function launchInstagram(target) {
-    if (!validInstagramUrl(target)) {
+  function openInstagram(target){
+    if(!validInstagram(target)){
       alert("Invalid Instagram URL.");
       return;
     }
@@ -120,105 +137,102 @@ code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;word-break:break
     const android = /Android/i.test(ua);
     const ios = /iPhone|iPad|iPod/i.test(ua);
 
-    if (android) {
-      location.href = androidIntentFor(target);
+    if(android){
+      location.href = androidIntent(target);
       return;
     }
 
-    if (ios) {
-      const user = usernameFromTarget(target);
-      let leftPage = false;
-      document.addEventListener("visibilitychange", () => {
-        if (document.hidden) leftPage = true;
-      }, {once:true});
-
+    if(ios){
+      const user = getUsername(target).replace(/^@/,"");
+      let left = false;
+      document.addEventListener("visibilitychange",()=>{ if(document.hidden) left=true; },{once:true});
       location.href = `instagram://user?username=${encodeURIComponent(user)}`;
-      setTimeout(() => {
-        if (!leftPage && !document.hidden) location.href = target;
-      }, 1400);
+      setTimeout(()=>{ if(!left && !document.hidden) location.href=target; },1500);
       return;
     }
 
     location.href = target;
   }
 
-  // Receiver mode: this is what runs after someone scans the NFC tag.
-  if (mode === "open-instagram") {
-    $("opener").classList.remove("hidden");
+  // NFC receiver/task mode
+  if(action === "instagram"){
+    $("receiver").classList.remove("hidden");
+    const target = params.get("target") || "https://www.instagram.com/jadeymn_/";
+    $("receiverInfo").textContent = `Trying to open ${getUsername(target)} in the Instagram app.`;
+    $("openBrowser").href = target;
+    $("openInstagram").onclick = () => openInstagram(target);
 
-    const target = qs.get("target") || "https://www.instagram.com/jadeymn_/";
-    $("browserFallback").href = target;
-    $("openText").textContent = `Trying to open ${usernameFromTarget(target)} in Instagram.`;
-    $("manualOpen").onclick = () => launchInstagram(target);
-
-    // Best-effort automatic launch.
-    setTimeout(() => launchInstagram(target), 350);
+    // Best-effort automatic external-app launch.
+    setTimeout(()=>openInstagram(target), 300);
     return;
   }
 
-  // Maker mode.
+  // Maker mode
   $("maker").classList.remove("hidden");
 
-  function makeAutomationUrl() {
+  function buildTaskURL(){
+    const status = $("status");
     const target = $("target").value.trim();
-    if (!validInstagramUrl(target)) {
-      $("automationUrl").value = "";
-      $("status").className = "status bad";
-      $("status").textContent = "Enter a valid https://www.instagram.com/... URL.";
+
+    if(!validInstagram(target)){
+      $("taskUrl").value = "";
+      status.className = "status bad";
+      status.textContent = "Enter a valid HTTPS Instagram URL.";
       return "";
     }
 
-    // IMPORTANT: this file must be hosted over HTTPS. The NFC tag points back to this exact file.
-    const cleanBase = location.origin + location.pathname;
-    const actionUrl = cleanBase +
-      "?mode=open-instagram&target=" + encodeURIComponent(target);
+    if(location.protocol !== "https:"){
+      status.className = "status bad";
+      status.textContent = "This NFC Maker must be hosted over HTTPS before Web NFC can write.";
+    }
 
-    $("automationUrl").value = actionUrl;
-    $("status").className = "status";
-    $("status").textContent = "Automation URL generated.";
-    return actionUrl;
+    const base = location.origin + location.pathname;
+    const task = `${base}?action=instagram&target=${encodeURIComponent(target)}`;
+    $("taskUrl").value = task;
+    if(location.protocol === "https:"){
+      status.className = "status";
+      status.textContent = "Task URL ready.";
+    }
+    return task;
   }
 
-  $("target").addEventListener("input", makeAutomationUrl);
-  $("buildBtn").onclick = makeAutomationUrl;
+  $("target").addEventListener("input",buildTaskURL);
+  $("refresh").onclick = buildTaskURL;
+  $("test").onclick = () => openInstagram($("target").value.trim());
 
-  $("testBtn").onclick = () => {
-    const target = $("target").value.trim();
-    launchInstagram(target);
-  };
-
-  $("writeBtn").onclick = async () => {
+  $("write").onclick = async () => {
     const status = $("status");
-    try {
-      if (!("NDEFReader" in window))
-        throw new Error("Web NFC is unavailable. Open this hosted HTTPS page directly in Chrome on a supported Android phone.");
-      if (!window.isSecureContext)
+    try{
+      if(!("NDEFReader" in window))
+        throw new Error("Web NFC is not available. Open the hosted HTTPS page directly in Google Chrome on a supported Android phone.");
+      if(!window.isSecureContext)
         throw new Error("Web NFC requires HTTPS.");
-      if (window.top !== window.self)
-        throw new Error("Open this page directly in a full Chrome tab, not inside a preview or iframe.");
+      if(window.top !== window.self)
+        throw new Error("Open this page directly in a full Chrome tab, not inside an embedded preview.");
 
-      const actionUrl = makeAutomationUrl();
-      if (!actionUrl) return;
+      const task = buildTaskURL();
+      if(!task) return;
 
       status.className = "status";
-      status.textContent = "Waiting for NFC tag… Hold the tag near the phone.";
+      status.textContent = "Ready to write.\nHold your NFC tag against the phone…";
 
       const ndef = new NDEFReader();
-      await ndef.write({
-        records: [{ recordType: "url", data: actionUrl }]
-      }, { overwrite: true });
+      await ndef.write(
+        {records:[{recordType:"url",data:task}]},
+        {overwrite:true}
+      );
 
       status.className = "status ok";
       status.textContent =
-        "Success — automation written.\n\n" +
-        "Now close this page and scan the NFC tag to test it.";
-    } catch (e) {
+        "Success — task URL written to NFC.\n\n" +
+        "The tag contains only the automation HTTPS URL. Do not add an Android Application Record.";
+    }catch(e){
       status.className = "status bad";
       status.textContent = "Write failed: " + (e.message || e);
     }
   };
 
-  makeAutomationUrl();
+  buildTaskURL();
 })();
 </script>
 </body>
