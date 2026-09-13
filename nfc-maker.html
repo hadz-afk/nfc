@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#111318">
+  <title>NFC Maker</title>
+  <style>
+    :root{
+      color-scheme:dark;
+      --bg:#0b0d11; --card:#151821; --card2:#1b1f29; --text:#f5f7fb;
+      --muted:#9aa3b2; --line:#2b3140; --accent:#ff7043; --ok:#6ee7a8; --bad:#ff7b86;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;background:linear-gradient(180deg,#0b0d11,#10131a);
+      color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      min-height:100svh
+    }
+    .wrap{max-width:760px;margin:auto;padding:20px 16px 50px}
+    h1{margin:8px 0 4px;font-size:30px}
+    .sub{color:var(--muted);margin:0 0 18px;line-height:1.45}
+    .card{
+      background:var(--card);border:1px solid var(--line);border-radius:20px;
+      padding:18px;margin:14px 0;box-shadow:0 16px 40px rgba(0,0,0,.22)
+    }
+    .title{font-size:18px;font-weight:800;margin-bottom:12px}
+    label{display:block;font-size:13px;color:var(--muted);margin:13px 0 7px}
+    input,select,textarea{
+      width:100%;border:1px solid var(--line);background:#0f1218;color:var(--text);
+      border-radius:13px;padding:13px 14px;font-size:16px;outline:none
+    }
+    input:focus,select:focus,textarea:focus{border-color:#59647c}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media(max-width:560px){.row{grid-template-columns:1fr}}
+    .check{
+      display:flex;gap:10px;align-items:flex-start;margin-top:14px;padding:12px;
+      background:var(--card2);border-radius:13px
+    }
+    .check input{width:auto;margin-top:3px}
+    .check strong{display:block;margin-bottom:3px}
+    .check small{color:var(--muted);line-height:1.35}
+    button{
+      width:100%;border:0;border-radius:15px;padding:15px 16px;font-size:16px;
+      font-weight:850;cursor:pointer;color:white;background:#272d3a;margin-top:10px
+    }
+    .primary{background:var(--accent);color:#141414}
+    .secondary{background:#272d3a}
+    .status{
+      margin-top:14px;padding:13px 14px;border-radius:13px;background:#0f1218;
+      border:1px solid var(--line);color:var(--muted);white-space:pre-wrap;line-height:1.45
+    }
+    .ok{color:var(--ok)} .bad{color:var(--bad)}
+    .pill{
+      display:inline-block;border:1px solid var(--line);border-radius:999px;
+      padding:5px 9px;color:var(--muted);font-size:12px;margin-right:6px
+    }
+    code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+    .records{margin-top:10px}
+    .rec{
+      border:1px solid var(--line);border-radius:12px;padding:11px;margin-top:8px;
+      background:#10131a;word-break:break-word
+    }
+    .rec b{display:block;margin-bottom:4px}
+    .note{font-size:13px;color:var(--muted);line-height:1.5}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>NFC Maker</h1>
+  <p class="sub">Create and read NDEF NFC tags directly from a supported Android browser.</p>
+
+  <div class="card">
+    <div class="title">Instagram tag</div>
+
+    <label for="username">Instagram username</label>
+    <input id="username" value="jadeymn_" autocomplete="off" spellcheck="false">
+
+    <label for="profileUrl">Profile URL</label>
+    <input id="profileUrl" value="https://www.instagram.com/jadeymn_/" autocomplete="off" spellcheck="false">
+
+    <div class="check">
+      <input id="addAar" type="checkbox">
+      <div>
+        <strong>Add Android Application Record (AAR)</strong>
+        <small>Adds <code>com.instagram.android</code>. This can launch Instagram on Android, but Android may open the app home instead of passing the profile URL.</small>
+      </div>
+    </div>
+
+    <label for="pkg">Android package</label>
+    <input id="pkg" value="com.instagram.android" autocomplete="off" spellcheck="false">
+
+    <button id="writeInstagram" class="primary">Write Instagram NFC Tag</button>
+    <div id="writeStatus" class="status">Ready.</div>
+  </div>
+
+  <div class="card">
+    <div class="title">Custom NFC record</div>
+    <div class="row">
+      <div>
+        <label for="recordType">Record type</label>
+        <select id="recordType">
+          <option value="url">URL / URI</option>
+          <option value="text">Text</option>
+          <option value="android.com:pkg">Android Application Record</option>
+        </select>
+      </div>
+      <div>
+        <label for="customData">Data</label>
+        <input id="customData" value="https://www.instagram.com/jadeymn_/" spellcheck="false">
+      </div>
+    </div>
+    <button id="writeCustom" class="secondary">Write Custom Record</button>
+  </div>
+
+  <div class="card">
+    <div class="title">Read NFC tag</div>
+    <button id="readBtn" class="secondary">Scan / Read Tag</button>
+    <div id="readStatus" class="status">No tag scanned yet.</div>
+    <div id="records" class="records"></div>
+  </div>
+
+  <div class="card">
+    <div class="title">Browser support</div>
+    <div id="support"></div>
+    <p class="note">
+      Web NFC requires a secure context (normally HTTPS), a compatible NFC-enabled Android device,
+      and a supporting browser. iPhone browsers do not expose the same Web NFC writing API.
+      The page must be open and you must approve NFC permission before writing.
+    </p>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const enc = new TextEncoder();
+const dec = new TextDecoder();
+
+function updateProfile() {
+  const u = $("username").value.trim().replace(/^@/, "");
+  $("profileUrl").value = `https://www.instagram.com/${encodeURIComponent(u)}/`;
+}
+$("username").addEventListener("input", updateProfile);
+
+function setStatus(el, text, cls="") {
+  el.className = "status " + cls;
+  el.textContent = text;
+}
+
+function supportInfo() {
+  const supported = "NDEFReader" in window;
+  $("support").innerHTML =
+    `<span class="pill">${supported ? "Web NFC available" : "Web NFC unavailable"}</span>` +
+    `<span class="pill">${window.isSecureContext ? "Secure context" : "Not HTTPS / secure"}</span>`;
+}
+supportInfo();
+
+async function ensureSupported() {
+  if (!("NDEFReader" in window)) {
+    throw new Error("Web NFC is not available in this browser. Try a supported Android Chromium browser.");
+  }
+  if (!window.isSecureContext) {
+    throw new Error("Web NFC requires HTTPS (or another secure context). Host this page over HTTPS first.");
+  }
+}
+
+async function writeMessage(records) {
+  await ensureSupported();
+  const ndef = new NDEFReader();
+  await ndef.write({records}, {overwrite:true});
+}
+
+$("writeInstagram").addEventListener("click", async () => {
+  const status = $("writeStatus");
+  try {
+    const username = $("username").value.trim().replace(/^@/, "");
+    if (!username) throw new Error("Enter an Instagram username.");
+
+    let url = $("profileUrl").value.trim();
+    if (!/^https?:\/\//i.test(url)) throw new Error("Profile URL must start with http:// or https://");
+
+    const records = [{recordType:"url", data:url}];
+
+    if ($("addAar").checked) {
+      const pkg = $("pkg").value.trim();
+      if (!pkg) throw new Error("Enter an Android package name.");
+      records.push({
+        recordType:"android.com:pkg",
+        data:enc.encode(pkg)
+      });
+    }
+
+    setStatus(status, "Waiting for NFC tag…\nHold the tag near the phone.", "");
+    await writeMessage(records);
+    setStatus(status,
+      `Success — NFC tag written.\nProfile: @${username}\nRecords: ${records.length}`,
+      "ok"
+    );
+  } catch (e) {
+    setStatus(status, `Write failed: ${e.message || e}`, "bad");
+  }
+});
+
+$("writeCustom").addEventListener("click", async () => {
+  const status = $("writeStatus");
+  try {
+    const type = $("recordType").value;
+    const data = $("customData").value;
+
+    let record;
+    if (type === "android.com:pkg") {
+      record = {recordType:type, data:enc.encode(data.trim())};
+    } else {
+      record = {recordType:type, data};
+    }
+
+    setStatus(status, "Waiting for NFC tag…", "");
+    await writeMessage([record]);
+    setStatus(status, "Success — custom record written.", "ok");
+  } catch (e) {
+    setStatus(status, `Write failed: ${e.message || e}`, "bad");
+  }
+});
+
+$("readBtn").addEventListener("click", async () => {
+  const readStatus = $("readStatus");
+  const list = $("records");
+  list.innerHTML = "";
+  try {
+    await ensureSupported();
+    const ndef = new NDEFReader();
+    setStatus(readStatus, "Scanning… Hold an NFC tag near the phone.");
+    await ndef.scan();
+
+    ndef.onreadingerror = () => {
+      setStatus(readStatus, "A tag was detected, but its NDEF data could not be read.", "bad");
+    };
+
+    ndef.onreading = event => {
+      setStatus(readStatus, `Tag read successfully. ${event.message.records.length} record(s).`, "ok");
+      list.innerHTML = "";
+
+      event.message.records.forEach((r, i) => {
+        let value = "";
+        try {
+          if (r.recordType === "text" || r.recordType === "url" || r.recordType.includes(":")) {
+            value = dec.decode(r.data);
+          } else {
+            value = `[${r.data ? r.data.byteLength : 0} bytes]`;
+          }
+        } catch {
+          value = "[Unable to decode]";
+        }
+
+        const div = document.createElement("div");
+        div.className = "rec";
+        const b = document.createElement("b");
+        b.textContent = `Record ${i+1}: ${r.recordType}`;
+        const p = document.createElement("div");
+        p.textContent = value;
+        div.appendChild(b);
+        div.appendChild(p);
+        list.appendChild(div);
+      });
+    };
+  } catch (e) {
+    setStatus(readStatus, `Scan failed: ${e.message || e}`, "bad");
+  }
+});
+</script>
+</body>
+</html>
