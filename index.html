@@ -3,73 +3,181 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#111111">
-<title>Opening Instagram…</title>
+<meta name="theme-color" content="#111318">
+<title>NFC Maker + Instagram Automation</title>
 <style>
-  *{box-sizing:border-box}
-  body{margin:0;min-height:100svh;display:grid;place-items:center;padding:24px;
-    background:#0d0d10;color:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-  .card{width:min(100%,420px);padding:28px;border-radius:24px;background:#18181f;
-    border:1px solid #2b2b35;text-align:center}
-  h1{margin:0 0 8px;font-size:26px}
-  p{color:#aaaab5;line-height:1.45}
-  button,a{display:block;width:100%;padding:15px;margin-top:12px;border-radius:15px;
-    text-decoration:none;border:0;font:inherit;font-weight:800;cursor:pointer}
-  button{background:#fff;color:#111}
-  a{background:#282832;color:#fff}
-  .small{font-size:12px;color:#777783;margin-top:18px}
+:root{color-scheme:dark;--bg:#0b0d11;--card:#151821;--text:#f5f7fb;--muted:#9aa3b2;--line:#2b3140;--accent:#ff7043;--ok:#6ee7a8;--bad:#ff7b86}
+*{box-sizing:border-box}
+body{margin:0;min-height:100svh;background:linear-gradient(180deg,#0b0d11,#10131a);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+.wrap{max-width:720px;margin:auto;padding:24px 16px 48px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:20px;margin:14px 0;box-shadow:0 16px 40px rgba(0,0,0,.24)}
+h1{margin:4px 0 6px;font-size:29px}.sub{margin:0 0 18px;color:var(--muted);line-height:1.45}
+label{display:block;margin:14px 0 7px;color:var(--muted);font-size:13px}
+input{width:100%;padding:14px;border:1px solid var(--line);border-radius:13px;background:#0f1218;color:#fff;font-size:16px;outline:none}
+button,a.btn{display:block;width:100%;padding:15px;border:0;border-radius:15px;margin-top:12px;font:inherit;font-weight:850;text-align:center;text-decoration:none;cursor:pointer}
+.primary{background:var(--accent);color:#161616}.secondary{background:#272d3a;color:#fff}
+.status{margin-top:14px;padding:13px;border:1px solid var(--line);border-radius:13px;background:#0f1218;color:var(--muted);white-space:pre-wrap;line-height:1.45}
+.ok{color:var(--ok)}.bad{color:var(--bad)}
+code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+.small{font-size:12px;color:var(--muted);line-height:1.45}
+.hidden{display:none!important}
+.handle{font-size:22px;font-weight:850;margin:10px 0}
 </style>
 </head>
 <body>
-<div class="card">
-  <h1>Opening @jadeymn_</h1>
-  <p id="msg">Trying to open your Instagram app…</p>
-  <button id="open">Open Instagram</button>
-  <a href="https://www.instagram.com/jadeymn_/">Open profile in browser</a>
-  <div class="small">Some phones require one tap before a website may open another app.</div>
+<div class="wrap">
+
+  <!-- NFC target mode: opened after someone taps the NFC tag -->
+  <section id="launcher" class="card hidden">
+    <h1>Opening Instagram…</h1>
+    <div id="targetHandle" class="handle"></div>
+    <p class="sub">Trying to open this profile in the Instagram app.</p>
+    <button id="launchBtn" class="primary">Open in Instagram</button>
+    <a id="browserFallback" class="btn secondary" href="#">Open profile in browser</a>
+    <div id="launchStatus" class="status">Preparing…</div>
+    <p class="small">Some phones require one user tap before a website is allowed to launch another app.</p>
+  </section>
+
+  <!-- Maker mode -->
+  <section id="maker">
+    <h1>NFC Maker + Automation</h1>
+    <p class="sub">Writes a tag that points back to this same page with an Instagram username. When tapped, the page tries to launch that profile in Instagram.</p>
+
+    <div class="card">
+      <label for="username">Instagram username</label>
+      <input id="username" value="jadeymn_" autocomplete="off" spellcheck="false">
+
+      <label for="generatedUrl">URL that will be written to the NFC tag</label>
+      <input id="generatedUrl" readonly>
+
+      <button id="writeBtn" class="primary">Write Automated Instagram Tag</button>
+      <button id="testBtn" class="secondary">Test Automation Now</button>
+
+      <div id="writeStatus" class="status">Ready.</div>
+    </div>
+
+    <div class="card">
+      <strong>How this version works</strong>
+      <p class="small">
+        The NFC tag stores only a normal HTTPS URL. That URL opens this page with
+        <code>?ig=USERNAME</code>. The page then tries an Android intent targeted at
+        <code>com.instagram.android</code>, or the Instagram scheme on iPhone.
+      </p>
+    </div>
+  </section>
 </div>
 
 <script>
 (() => {
-  const username = "jadeymn_";
-  const web = `https://www.instagram.com/${username}/`;
+  const $ = id => document.getElementById(id);
+  const params = new URLSearchParams(location.search);
+  const targetUser = (params.get("ig") || "").trim().replace(/^@/, "");
 
-  // Android Intent URI: targets Instagram's package and passes the profile URL/path.
-  const androidIntent =
-    `intent://www.instagram.com/_u/${username}/` +
-    `#Intent;scheme=https;package=com.instagram.android;` +
-    `S.browser_fallback_url=${encodeURIComponent(web)};end`;
-
-  // iOS custom scheme. If not accepted, use the HTTPS fallback.
-  const iosScheme = `instagram://user?username=${username}`;
-
-  const ua = navigator.userAgent;
-  const isAndroid = /Android/i.test(ua);
-  const isIOS = /iPhone|iPad|iPod/i.test(ua);
-  const msg = document.getElementById("msg");
-
-  function launch() {
-    msg.textContent = "Opening Instagram…";
-    if (isAndroid) {
-      location.href = androidIntent;
-    } else if (isIOS) {
-      let hidden = false;
-      const vis = () => { if (document.hidden) hidden = true; };
-      document.addEventListener("visibilitychange", vis, {once:true});
-      location.href = iosScheme;
-      setTimeout(() => {
-        if (!hidden && !document.hidden) location.href = web;
-      }, 1500);
-    } else {
-      location.href = web;
-    }
+  function profileUrl(user) {
+    return `https://www.instagram.com/${encodeURIComponent(user)}/`;
   }
 
-  document.getElementById("open").addEventListener("click", launch);
+  function automationUrl(user) {
+    const u = new URL(location.href);
+    u.search = "";
+    u.hash = "";
+    u.searchParams.set("ig", user);
+    return u.toString();
+  }
 
-  // Best-effort automatic attempt after NFC opens this page.
-  // Browsers may block an external-app launch without a user gesture.
-  setTimeout(launch, 350);
+  function androidIntent(user) {
+    const web = profileUrl(user);
+    return `intent://www.instagram.com/_u/${encodeURIComponent(user)}/` +
+      `#Intent;scheme=https;package=com.instagram.android;` +
+      `S.browser_fallback_url=${encodeURIComponent(web)};end`;
+  }
+
+  function launchInstagram(user) {
+    const web = profileUrl(user);
+    $("launchStatus").textContent = "Opening Instagram…";
+
+    if (/Android/i.test(navigator.userAgent)) {
+      location.href = androidIntent(user);
+      return;
+    }
+
+    if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      let hidden = false;
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) hidden = true;
+      }, {once:true});
+
+      location.href = `instagram://user?username=${encodeURIComponent(user)}`;
+      setTimeout(() => {
+        if (!hidden && !document.hidden) location.href = web;
+      }, 1400);
+      return;
+    }
+
+    location.href = web;
+  }
+
+  // Launcher mode: this is what a person sees after tapping the NFC tag.
+  if (targetUser) {
+    $("maker").classList.add("hidden");
+    $("launcher").classList.remove("hidden");
+    $("targetHandle").textContent = "@" + targetUser;
+    $("browserFallback").href = profileUrl(targetUser);
+    $("launchBtn").addEventListener("click", () => launchInstagram(targetUser));
+
+    // Best-effort automatic launch.
+    setTimeout(() => launchInstagram(targetUser), 450);
+    return;
+  }
+
+  // Maker mode.
+  function updateGeneratedUrl() {
+    const user = $("username").value.trim().replace(/^@/, "");
+    $("generatedUrl").value = user ? automationUrl(user) : "";
+  }
+
+  $("username").addEventListener("input", updateGeneratedUrl);
+  updateGeneratedUrl();
+
+  $("testBtn").addEventListener("click", () => {
+    const user = $("username").value.trim().replace(/^@/, "");
+    if (!user) return;
+    location.href = automationUrl(user);
+  });
+
+  $("writeBtn").addEventListener("click", async () => {
+    const status = $("writeStatus");
+    const user = $("username").value.trim().replace(/^@/, "");
+
+    try {
+      if (!user) throw new Error("Enter an Instagram username.");
+      if (!("NDEFReader" in window))
+        throw new Error("Web NFC is unavailable. Open this hosted HTTPS page directly in Google Chrome on a compatible Android phone.");
+      if (!window.isSecureContext)
+        throw new Error("Web NFC requires HTTPS.");
+      if (window.top !== window.self)
+        throw new Error("Open this page directly in a full Chrome tab, not inside an embedded preview.");
+
+      const target = automationUrl(user);
+      const ndef = new NDEFReader();
+
+      status.className = "status";
+      status.textContent = "Waiting for NFC tag…\nHold the tag near your phone.";
+
+      await ndef.write({
+        records: [{recordType:"url", data:target}]
+      }, {overwrite:true});
+
+      status.className = "status ok";
+      status.textContent =
+        "Success — automation URL written.\n\n" +
+        "Tag target:\n" + target +
+        "\n\nNow scan the tag from another phone to test.";
+    } catch (e) {
+      status.className = "status bad";
+      status.textContent = "Write failed: " + (e.message || e);
+    }
+  });
 })();
 </script>
 </body>
